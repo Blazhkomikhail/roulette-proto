@@ -5,6 +5,8 @@ import { describe, expect, it } from 'vitest';
 const model = import.meta.glob('/src/model/**/*.ts', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 const geometry = import.meta.glob('/src/geometry/**/*.ts', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 
+const allSrc = import.meta.glob('/src/**/*.ts', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+
 const IMPORT_RE = /(?:import|export)\s[^'"]*?from\s*['"]([^'"]+)['"]|import\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
 
 function importsOf(source: string): string[] {
@@ -29,5 +31,11 @@ describe('architecture: layer boundaries', () => {
 
   it('geometry/ does not import pixi.js, view/ or model/', () => {
     expect(violations(geometry, /^pixi\.js|(^|\/)(view|model)(\/|$)/)).toEqual([]);
+  });
+
+  it('no parseFloat anywhere in src/ (CLAUDE.md §4)', () => {
+    const offenders = Object.entries(allSrc).filter(([, src]) => /\bparseFloat\b/.test(src)).map(([p]) => p);
+    expect(Object.keys(allSrc).length).toBeGreaterThan(0);
+    expect(offenders).toEqual([]);
   });
 });
