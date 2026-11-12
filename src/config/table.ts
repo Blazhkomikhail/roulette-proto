@@ -2,7 +2,19 @@
 // Grid: column c = 0..11 (left to right), row r = 0..2 (top to bottom); number n = 3c + 3 − r.
 // Top row 3, 6, …, 36; middle 2, 5, …, 35; bottom 1, 4, …, 34 [CLAUDE.md §3].
 
-export const TABLE = {
+/** Layout sizes in logical px. The grid shape (3 × 12) is fixed by the game, so it is typed as literals. */
+export interface TableLayout {
+  readonly cols: 12;
+  readonly rows: 3;
+  readonly cell: { readonly w: number; readonly h: number };
+  readonly zeroW: number;
+  readonly columnBetW: number;
+  readonly dozenH: number;
+  readonly outsideH: number;
+  readonly stripe: number;
+}
+
+export const TABLE: TableLayout = {
   cols: 12,
   rows: 3,
   /** Number cell size, logical px. */
@@ -17,7 +29,7 @@ export const TABLE = {
   outsideH: 48,
   /** Thickness of clickable split/street/corner/line bands, logical px. Even, so it halves exactly [Д]. */
   stripe: 12,
-} as const;
+};
 
 /** Red numbers [CLAUDE.md §3]. Black = the other numbers 1..36. */
 export const RED_NUMBERS: readonly number[] = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
