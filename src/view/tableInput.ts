@@ -4,6 +4,8 @@ import type { Zone } from '../geometry/types';
 
 export interface TableInputHandlers {
   onHover(zone: Zone | null): void;
+  /** Pointer pressed over a zone (any button); the handler decides add/remove. */
+  onPress(zone: Zone, e: { button: number; shiftKey: boolean }): void;
 }
 
 /**
@@ -32,4 +34,9 @@ export function bindTableInput(
     update(hitTest(zones, p.x, p.y));
   });
   target.on('pointerleave', () => update(null));
+  target.on('pointerdown', (e: FederatedPointerEvent) => {
+    const p = e.getLocalPosition(target);
+    const zone = hitTest(zones, p.x, p.y);
+    if (zone) handlers.onPress(zone, { button: e.button, shiftKey: e.shiftKey });
+  });
 }

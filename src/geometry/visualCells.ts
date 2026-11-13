@@ -3,7 +3,8 @@
 
 import { LABELS, OUTSIDE_ORDER, RED_NUMBERS, TABLE, type TableLayout } from '../config/table';
 import { numberAt } from './buildTable';
-import type { Rect } from './types';
+import { isInsideBetType } from '../shared/bet';
+import { rectContains, type Rect, type Zone } from './types';
 
 export type CellFill = 'zero' | 'red' | 'black' | 'felt';
 
@@ -64,4 +65,30 @@ export function buildVisualTable(layout: TableLayout = TABLE, redNumbers: readon
   });
 
   return { width: colLeft(cols) + CB, height: gridBottom + D + O, cells, numberCells };
+}
+
+/**
+ * The drawn cell that represents a straight or outside zone (its number cell, "2 to 1", dozen or
+ * even-money cell). Null for bands (split, street, corner, line), which have no cell of their own.
+ */
+export function drawnCellOf(zone: Zone, visual: VisualTable): Rect | null {
+  if (zone.type === 'straight') return visual.numberCells.get(zone.numbers[0] ?? -1) ?? null;
+  if (isInsideBetType(zone.type)) return null;
+  const cx = zone.rect.x + zone.rect.w / 2;
+  const cy = zone.rect.y + zone.rect.h / 2;
+  return visual.cells.find((c) => !c.key.startsWith('number:') && rectContains(c.rect, cx, cy))?.rect ?? null;
+}
+
+/**
+ * Where a zone's chip stack is drawn.
+ * - bands: centre of the band (on the edge / crossing between their numbers);
+ * - numbers and narrow cells ("2 to 1"): centre of the drawn cell;
+ * - wide captioned cells (dozens, even-money): `sideInset` px from the right edge, so the caption stays readable.
+ */
+export function zoneAnchor(zone: Zone, visual: VisualTable, sideInset = 22): { x: number; y: number } {
+  const cell = drawnCellOf(zone, visual);
+  const r = cell ?? zone.rect;
+  const cy = r.y + r.h / 2;
+  const wideCaptioned = cell !== null && zone.type !== 'straight' && r.w >= 4 * sideInset;
+  return { x: wideCaptioned ? r.x + r.w - sideInset : r.x + r.w / 2, y: cy };
 }

@@ -1,7 +1,7 @@
 import { Container, Graphics } from 'pixi.js';
 import { isInsideBetType } from '../shared/bet';
-import { rectContains, type Rect, type Zone } from '../geometry/types';
-import type { VisualTable } from '../geometry/visualCells';
+import type { Zone } from '../geometry/types';
+import { drawnCellOf, type VisualTable } from '../geometry/visualCells';
 import { THEME } from './theme';
 
 /**
@@ -42,16 +42,8 @@ export class HighlightView {
       const z = THEME.highlightZone;
       this.g.rect(x, y, w, h).fill({ color: z.fill, alpha: z.alpha }).stroke({ width: 1.5, color: z.stroke, alignment: 0 });
     } else if (zone.type !== 'straight') {
-      const cell = this.drawnCellOf(zone);
+      const cell = drawnCellOf(zone, this.visual);
       if (cell) this.g.rect(cell.x, cell.y, cell.w, cell.h).fill({ color: c.fill, alpha: c.alpha }).stroke({ width: c.strokeWidth, color: c.stroke, alignment: 1 });
     }
-  }
-
-  /** The drawn (non-number) cell under the zone's centre: "2 to 1", dozen or even-money cell. */
-  private drawnCellOf(zone: Zone): Rect | null {
-    const cx = zone.rect.x + zone.rect.w / 2;
-    const cy = zone.rect.y + zone.rect.h / 2;
-    const cell = this.visual.cells.find((v) => !v.key.startsWith('number:') && rectContains(v.rect, cx, cy));
-    return cell?.rect ?? null;
   }
 }

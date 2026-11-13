@@ -4,7 +4,7 @@ import { buildTable } from './buildTable';
 import { hitTest } from './hitTest';
 import { TEST_LAYOUTS } from './testLayouts';
 import { rectsOverlap } from './types';
-import { buildVisualTable } from './visualCells';
+import { buildVisualTable, drawnCellOf, zoneAnchor } from './visualCells';
 
 describe.each(TEST_LAYOUTS)('buildVisualTable (%s)', (_name, layout) => {
   const visual = buildVisualTable(layout);
@@ -49,6 +49,45 @@ describe.each(TEST_LAYOUTS)('buildVisualTable (%s)', (_name, layout) => {
     for (const [key, type] of Object.entries(expectType)) {
       const r = visual.cells.find((c) => c.key === key)!.rect;
       expect(hitTest(zones, r.x + r.w / 2, r.y + r.h / 2 + 1)?.type, key).toBe(type);
+    }
+  });
+});
+
+describe('zoneAnchor / drawnCellOf', () => {
+  const visual = buildVisualTable();
+  const { zones } = buildTable();
+  const byId = (id: string) => zones.find((z) => z.id === id)!;
+  const centre = (r: { x: number; y: number; w: number; h: number }) => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
+
+  it('numbers and the narrow "2 to 1" cells anchor at the centre of their drawn cell', () => {
+    expect(zoneAnchor(byId('straight:17'), visual)).toEqual(centre(visual.numberCells.get(17)!));
+    expect(zoneAnchor(byId('straight:0'), visual)).toEqual(centre(visual.numberCells.get(0)!));
+    const col = visual.cells.find((c) => c.key === 'column:0')!;
+    expect(zoneAnchor(byId('column:3-6-9-12-15-18-21-24-27-30-33-36'), visual)).toEqual(centre(col.rect));
+  });
+
+  it('wide captioned cells (dozens, even-money) anchor near the right edge, clear of the centred caption', () => {
+    const inset = 22;
+    const dozen2 = visual.cells.find((c) => c.key === 'dozen:2')!.rect;
+    expect(zoneAnchor(byId('dozen:13-14-15-16-17-18-19-20-21-22-23-24'), visual, inset))
+      .toEqual({ x: dozen2.x + dozen2.w - inset, y: dozen2.y + dozen2.h / 2 });
+    const redCell = visual.cells.find((c) => c.key === 'outside:red')!.rect;
+    expect(zoneAnchor(byId(`red:${RED_NUMBERS.join('-')}`), visual, inset))
+      .toEqual({ x: redCell.x + redCell.w - inset, y: redCell.y + redCell.h / 2 });
+  });
+
+  it('bands anchor at their own centre, which lies on the edge between their numbers', () => {
+    const corner = byId('corner:32-33-35-36');
+    expect(drawnCellOf(corner, visual)).toBeNull();
+    const n32 = visual.numberCells.get(32)!, n36 = visual.numberCells.get(36)!;
+    // Corner point = shared corner of the 32 and 36 cells.
+    expect(zoneAnchor(corner, visual)).toEqual({ x: n36.x, y: n32.y });
+  });
+
+  it('every anchor hits its own zone (chips sit on the bet they belong to)', () => {
+    for (const z of zones) {
+      const a = zoneAnchor(z, visual);
+      expect(hitTest(zones, a.x, a.y)?.id, z.id).toBe(z.id);
     }
   });
 });

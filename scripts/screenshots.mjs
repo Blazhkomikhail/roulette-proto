@@ -10,7 +10,7 @@ const CHROME = process.env.CHROME_PATH ?? '/Applications/Google Chrome.app/Conte
 const VITE_PORT = 5199;
 const CDP_PORT = 9333;
 const OUT = 'screenshots';
-const VIEWPORT = { width: 980, height: 560, deviceScaleFactor: 2 };
+const VIEWPORT = { width: 980, height: 680, deviceScaleFactor: 2 };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -48,6 +48,9 @@ function connect(wsUrl) {
   const pending = new Map();
   ws.addEventListener('message', (ev) => {
     const msg = JSON.parse(String(ev.data));
+    if (msg.method === 'Runtime.consoleAPICalled') {
+      console.log(`[page console.${msg.params.type}] ${msg.params.args.map((a) => a.value).join(' ')}`);
+    }
     if (msg.id && pending.has(msg.id)) {
       const { resolve, reject } = pending.get(msg.id);
       pending.delete(msg.id);
@@ -80,6 +83,25 @@ async function hover(cdp, zoneId) {
   await cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: p.x, y: p.y });
 }
 
+async function click(cdp, x, y, { button = 'left', shift = false } = {}) {
+  const modifiers = shift ? 8 : 0;
+  const buttons = button === 'right' ? 2 : 1;
+  await cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y, modifiers });
+  await cdp.send('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button, buttons, clickCount: 1, modifiers });
+  await cdp.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button, buttons: 0, clickCount: 1, modifiers });
+}
+
+async function clickZone(cdp, zoneId, opts) {
+  const p = await evaluate(cdp, `window.__roulette.zoneClientPoint(${JSON.stringify(zoneId)})`);
+  if (!p) throw new Error(`zone ${zoneId} not found`);
+  await click(cdp, p.x, p.y, opts);
+}
+
+async function clickSelector(cdp, selector) {
+  const p = await evaluate(cdp, `(() => { const r = document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`);
+  await click(cdp, p.x, p.y);
+}
+
 const vite = await startVite();
 const chrome = await startChrome();
 try {
@@ -98,6 +120,36 @@ try {
   await shot(cdp, '04-hover-line-1-6.png');
   await hover(cdp, 'dozen:13-14-15-16-17-18-19-20-21-22-23-24');
   await shot(cdp, '05-hover-dozen-2nd12.png');
+
+  // Table with bets: left clicks place chips, Shift+click and right click remove one.
+  await cdp.send('Runtime.enable');
+  await clickSelector(cdp, '[data-chip="25"]');
+  await clickZone(cdp, 'straight:17');
+  await clickZone(cdp, 'straight:17');
+  await clickZone(cdp, 'corner:17-18-20-21');
+  await clickSelector(cdp, '[data-chip="5"]');
+  for (let i = 0; i < 3; i++) await clickZone(cdp, 'split:0-1');
+  await clickZone(cdp, 'split:0-1', { shift: true }); // Shift+click removes one → 2 chips left
+  await clickSelector(cdp, '[data-chip="10"]');
+  await clickZone(cdp, 'line:1-2-3-4-5-6');
+  await clickZone(cdp, 'street:13-14-15');
+  await clickZone(cdp, 'corner:32-33-35-36');
+  await clickZone(cdp, 'corner:32-33-35-36', { button: 'right' }); // right click removes it again
+  await clickZone(cdp, 'corner:32-33-35-36');
+  await clickSelector(cdp, '[data-chip="100"]');
+  await clickZone(cdp, 'red:1-3-5-7-9-12-14-16-18-19-21-23-25-27-30-32-34-36');
+  await clickZone(cdp, 'dozen:25-26-27-28-29-30-31-32-33-34-35-36');
+  await clickSelector(cdp, '[data-chip="1"]');
+  await clickZone(cdp, 'column:3-6-9-12-15-18-21-24-27-30-33-36');
+  await cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 5, y: 5 }); // no hover
+  await shot(cdp, '06-table-with-bets.png');
+  console.log('bets:', JSON.stringify(await evaluate(cdp, 'window.__roulette.toBets()')));
+  console.log('totalStakeMinor:', await evaluate(cdp, 'window.__roulette.totalStakeMinor()'));
+
+  // Limit rejection: 50 + 25 (corner) already on 17; +100 would make 175 > 100.
+  await clickSelector(cdp, '[data-chip="100"]');
+  await clickZone(cdp, 'straight:17');
+  await shot(cdp, '07-limit-rejected.png');
   cdp.close();
 } finally {
   chrome.proc.kill();
