@@ -25,7 +25,7 @@ function withZone(state: SlipState, key: string, zone: ZoneStake | null): SlipSt
   return next;
 }
 
-/** Candidate check shared by every growing transition (add now, double in iteration 4). */
+/** Candidate check shared by every growing transition (add, double). */
 export function acceptIfWithinLimits(prev: SlipState, candidate: SlipState): Transition {
   const violation = findViolation(candidate);
   if (violation) return { ok: false, reason: violation.reason, message: violationMessage(violation) };
@@ -55,6 +55,27 @@ export function removeChip(state: SlipState, target: unknown): Transition {
   const chips = current.chips.slice(0, -1);
   const zone = chips.length > 0 ? Object.freeze({ target: current.target, chips: Object.freeze(chips) }) : null;
   return { ok: true, changed: true, state: withZone(state, key, zone) };
+}
+
+/** Empties the slip. Already empty: no change (same state object). */
+export function clear(state: SlipState): Transition {
+  if (state.size === 0) return { ok: true, changed: false, state };
+  return { ok: true, changed: true, state: EMPTY_SLIP };
+}
+
+/**
+ * Doubles every zone by repeating its chip stack (so each chip keeps its denomination).
+ * All-or-nothing: if any zone would break a limit, the whole operation is rejected [У§4].
+ * Empty slip: no change.
+ */
+export function double(state: SlipState): Transition {
+  if (state.size === 0) return { ok: true, changed: false, state };
+  const candidate = new Map<string, ZoneStake>();
+  for (const [key, zone] of state) {
+    candidate.set(key, Object.freeze({ target: zone.target, chips: Object.freeze([...zone.chips, ...zone.chips]) }));
+  }
+  const t = acceptIfWithinLimits(state, candidate);
+  return t.ok ? t : { ...t, message: `Double rejected. ${t.message}` };
 }
 
 const TYPE_ORDER = new Map(BET_TYPES.map((t, i) => [t, i]));
