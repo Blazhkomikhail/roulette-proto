@@ -1,0 +1,77 @@
+# npm run verify (iter5)
+# 2026-11-13T09:06:41.560Z
+# node v22.22.0
+
+$ npm run typecheck
+
+> roulette-proto@0.0.0 typecheck
+> tsc --noEmit
+
+[exit code: 0]
+
+$ npm run test
+
+> roulette-proto@0.0.0 test
+> vitest run
+
+
+ RUN  v5.0.5 /Users/misha_blazhko/Documents/tests/roulette
+
+ ❯ src/model/slip.history.test.ts (33 tests | 1 failed) 24ms
+   ❯ Slip history depth [Д] (6)
+     × default depth is 100 4ms
+
+ Test Files  1 failed | 9 passed (10)
+      Tests  1 failed | 205 passed (206)
+   Start at  11:06:42
+   Duration  345ms (tests 48%, transform 29%, import 18%, worker 4%)
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/model/slip.history.test.ts > Slip history depth [Д] > default depth is 100
+AssertionError: expected 30 to be 100 // Object.is equality
+
+- Expected
++ Received
+
+- 100
++ 30
+
+ ❯ src/model/slip.history.test.ts:253:35
+    251| describe('Slip history depth [Д]', () => {
+    252|   it('default depth is 100', () => {
+    253|     expect(DEFAULT_HISTORY_DEPTH).toBe(100);
+       |                                   ^
+    254|     const slip = new Slip();
+    255|     for (let i = 0; i < 101; i++) place(slip, red, 1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+[exit code: 1]
+
+$ npm run build
+
+> roulette-proto@0.0.0 build
+> vite build
+
+vite v8.3.5 building client environment for production...
+transforming...
+✓ 731 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                     1.08 kB │ gzip:  0.55 kB
+dist/assets/webworkerAll-BBLiUR-i.js                0.05 kB │ gzip:  0.06 kB
+dist/assets/getTextureBatchBindGroup-hK4Xhp7N.js    0.34 kB │ gzip:  0.26 kB
+dist/assets/canvasUtils-G1F85v5_.js                 6.01 kB │ gzip:  2.04 kB
+dist/assets/getTexelRangeRects-n9rC3yLB.js         11.31 kB │ gzip:  2.98 kB
+dist/assets/init-6qz57udQ.js                       14.81 kB │ gzip:  4.62 kB
+dist/assets/browserAll-C_-hy7dz.js                 43.47 kB │ gzip: 11.27 kB
+dist/assets/RenderTargetSystem-BssNwx7J.js         78.08 kB │ gzip: 22.07 kB
+dist/assets/CanvasPool-D071ZhP4.js                113.00 kB │ gzip: 34.45 kB
+dist/assets/index-RBgignbQ.js                     290.90 kB │ gzip: 86.97 kB
+
+✓ built in 424ms
+[exit code: 0]
+
+# RESULT: FAILED
