@@ -34,10 +34,10 @@ export const TABLE: TableLayout = {
 /** Red numbers [CLAUDE.md §3]. Black = the other numbers 1..36. */
 export const RED_NUMBERS: readonly number[] = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
 
-/** Left-to-right order of the even-money row under the dozens, as on the reference [У§1]. */
+/** Left-to-right order of the even-money row under the dozens, as on the reference */
 export const OUTSIDE_ORDER = ['low', 'even', 'red', 'black', 'odd', 'high'] as const;
 
-/** Zone captions drawn on the table, as on the reference [Д]. Red/black are drawn as colour, not text. */
+/** Zone captions drawn on the table, as on the reference. Red/black are drawn as colour, not text. */
 export const LABELS = {
   dozen: ['1st12', '2nd12', '3rd12'],
   column: '2 to 1',
