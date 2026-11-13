@@ -71,8 +71,12 @@ export function clear(state: SlipState): Transition {
 export function double(state: SlipState): Transition {
   if (state.size === 0) return { ok: true, changed: false, state };
   const candidate = new Map<string, ZoneStake>();
+  
   for (const [key, zone] of state) {
-    candidate.set(key, Object.freeze({ target: zone.target, chips: Object.freeze([...zone.chips, ...zone.chips]) }));
+    candidate.set(key, Object.freeze({ 
+      target: zone.target, 
+      chips: Object.freeze([...zone.chips, ...zone.chips]),
+    }));
   }
   const t = acceptIfWithinLimits(state, candidate);
   return t.ok ? t : { ...t, message: `Double rejected. ${t.message}` };
@@ -85,8 +89,14 @@ export function toBets(state: SlipState): Bet[] {
   const zones = [...state.values()].sort((a, b) => {
     const byType = (TYPE_ORDER.get(a.target.type) ?? 0) - (TYPE_ORDER.get(b.target.type) ?? 0);
     if (byType !== 0) return byType;
-    const an = a.target.numbers, bn = b.target.numbers;
-    for (let i = 0; i < Math.min(an.length, bn.length); i++) if (an[i] !== bn[i]) return (an[i] ?? 0) - (bn[i] ?? 0);
+    
+    const an = a.target.numbers;
+    const bn = b.target.numbers;
+    for (let i = 0; i < Math.min(an.length, bn.length); i++) {
+      if (an[i] !== bn[i]) {
+        return (an[i] ?? 0) - (bn[i] ?? 0);
+      }
+    }
     return an.length - bn.length;
   });
   return zones.map((z) => ({ type: z.target.type, numbers: [...z.target.numbers], amountMinor: minorToString(stakeOf(z)) }));
